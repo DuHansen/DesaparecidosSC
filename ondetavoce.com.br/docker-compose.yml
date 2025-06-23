@@ -1,0 +1,17 @@
+
+version: '3.8'
+
+services:
+  ondetavoce:
+    build: .
+    container_name: ondetavoce
+    volumes:
+      - ./public:/var/www/html
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    external: true
+
+

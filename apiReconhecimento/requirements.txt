@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+deepface
+numpy
+python-dotenv
+mysql-connector-python
+requests
