@@ -7,6 +7,13 @@ $paginaAtual = isset($_GET['pagina']) ? max(1, intval($_GET['pagina'])) : 1;
 $filtro = isset($_GET['filtro']) ? $_GET['filtro'] : '';
 $valor = isset($_GET['valor']) ? $_GET['valor'] : '';
 $tempo = isset($_GET['tempo']) ? $_GET['tempo'] : '';
+$cidadeUsuario = isset($_GET['cidade']) ? $_GET['cidade'] : '';
+
+// Se houver cidade do usuário, usa como filtro padrão
+if ($cidadeUsuario && !$filtro) {
+    $filtro = 'cidade';
+    $valor = $cidadeUsuario;
+}
 
 // Função para buscar desaparecidos na API com filtros e paginação
 function buscarDesaparecidosAPI($pagina = 1, $itensPorPagina = 12, $filtro = '', $valor = '', $tempo = '') {
@@ -134,6 +141,19 @@ $desaparecidos = $data['data'] ?? [];
   <?php if (isset($dados['error'])): ?>
   <div class="alert alert-danger">
     <i class="bi bi-exclamation-octagon-fill"></i> Erro ao carregar dados da API: <?= htmlspecialchars($dados['error']) ?>
+  </div>
+  <?php endif; ?>
+
+  <!-- Mensagem de filtro por cidade -->
+  <?php if ($cidadeUsuario): ?>
+  <div class="container mb-4">
+    <div class="alert alert-info d-flex align-items-center">
+      <i class="bi bi-info-circle-fill me-2"></i>
+      <div>
+        Mostrando desaparecidos na cidade de <strong><?= htmlspecialchars($cidadeUsuario) ?></strong>. 
+        <a href="?" class="ms-2">Mostrar todos</a>
+      </div>
+    </div>
   </div>
   <?php endif; ?>
 
@@ -397,3 +417,56 @@ $desaparecidos = $data['data'] ?? [];
 </body>
 </html>
 <?php include 'includes/footer.php'; ?>
+<script>
+  // Função para pegar a cidade via IP
+  function getCityByIP() {
+    fetch('http://localhost/api/geolocation/ip')  // Chama o backend Laravel
+      .then(response => response.json())
+      .then(data => {
+        if (data.city) {
+          // Atualiza a URL com o filtro para a cidade
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.set('cidade', data.city);  // Filtra pelos desaparecidos da cidade
+          urlParams.set('filtro', 'cidade');
+          window.location.search = urlParams.toString();  // Atualiza a página com o novo filtro
+        }
+      })
+      .catch(error => console.error('Erro ao pegar geolocalização por IP:', error));
+  }
+
+  // Função para pegar a cidade via coordenadas
+  function getCityByCoordinates() {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      fetch(`http://localhost/api/geolocation/coordinates?latitude=${latitude}&longitude=${longitude}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.city) {
+            // Atualiza a URL com o filtro para a cidade
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('cidade', data.city);  // Filtra pelos desaparecidos da cidade
+            urlParams.set('filtro', 'cidade');
+            window.location.search = urlParams.toString();  // Atualiza a página com o novo filtro
+          }
+        })
+        .catch(error => console.error('Erro ao pegar geolocalização por coordenadas:', error));
+    }, function(error) {
+      console.error('Erro ao obter a localização:', error);
+    });
+  }
+
+  // Tenta pegar a cidade primeiro por IP, e se falhar, tenta pelas coordenadas
+  function tryGeolocation() {
+    getCityByIP();  // Chama a função de geolocalização por IP
+    setTimeout(() => {  // Caso o IP não tenha dado resposta, tenta pelas coordenadas
+      if (!new URLSearchParams(window.location.search).has('cidade')) {
+        getCityByCoordinates();  // Caso não tenha cidade na URL, tenta pelas coordenadas
+      }
+    }, 2000);  // Tempo limite para a primeira tentativa de geolocalização
+  }
+
+  // Chama a função para iniciar a geolocalização
+  tryGeolocation();
+</script>

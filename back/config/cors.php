@@ -1,19 +1,19 @@
 <?php
 return [
-'paths' => [
-    'api/*',
-    'logout',
-    'login',
-    'sanctum/csrf-cookie'
-],
-'allowed_methods' => ['*'],
+    'paths' => [
+        'api/*',
+        'logout',
+        'login',
+        'sanctum/csrf-cookie',
+        'geolocation/*'
+    ],
 
-'allowed_origins' => ['http://localhost', 'http://localhost:8080'],
- // <-- use a porta exata do frontend
+    'allowed_methods' => ['*'],
 
-'allowed_headers' => ['*'],
-
-'supports_credentials' => true,
+    'allowed_origins' => ['*'],
 
 
+    'allowed_headers' => ['*'],
+
+    'supports_credentials' => true,
 ];

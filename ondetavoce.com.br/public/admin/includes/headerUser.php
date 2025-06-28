@@ -4,6 +4,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Detectar a página atual
+$current_page = basename($_SERVER['PHP_SELF']);
+
 // Usuários permitidos por perfil
 $permitidos = ['admin', 'user'];
 
@@ -57,15 +60,35 @@ $usuario = [
             color: var(--secondary-color) !important;
             transform: translateY(-2px);
         }
+        /* Adicione estas regras CSS */
         .dropdown-menu-custom {
-            background-color: var(--primary-color);
-            border: none;
+            background-color: var(--primary-color) !important;
+            border: 1px solid var(--secondary-color) !important;
         }
+        
         .dropdown-item-custom {
-            color: black !important;
+            color: white !important;
+            padding: 8px 15px;
         }
-        .dropdown-item-custom:hover {
-            background-color: var(--secondary-color);
+        
+        .dropdown-item-custom:hover, 
+        .dropdown-item-custom:focus {
+            background-color: var(--secondary-color) !important;
+            color: white !important;
+        }
+        
+        .dropdown-item-custom.active {
+            background-color: var(--secondary-color) !important;
+            font-weight: bold;
+        }
+        
+        /* Mostrar dropdowns ao passar o mouse */
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-menu {
+            margin-top: 0; /* Remove o espaço entre o botão e o dropdown */
         }
         .badge-notification {
             position: absolute;
@@ -126,33 +149,36 @@ $usuario = [
                 <!-- Menu Principal -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom active" href="home.php">
+                        <a class="nav-link nav-link-custom <?php echo ($current_page == 'home.php') ? 'active' : ''; ?>" href="home.php">
                             <i class="fas fa-home feature-icon"></i> Home
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom" href="analise-dados.php">
+                        <a class="nav-link nav-link-custom <?php echo ($current_page == 'analise-dados.php') ? 'active' : ''; ?>" href="analise-dados.php">
                             <i class="fas fa-chart-bar feature-icon"></i> Análise de Dados
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link nav-link-custom dropdown-toggle" href="#" id="inteligenciaDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-brain feature-icon"></i> Inteligência Artificial
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="inteligenciaDropdown">
-                            <li><a class="dropdown-item dropdown-item-custom" href="reconhecimento-facial.php">
-                                <i class="fas fa-eye feature-icon"></i> Reconhecimento Facial
-                            </a></li>
-                            <li><a class="dropdown-item dropdown-item-custom" href="biometria.php">
-                                <i class="fas fa-fingerprint feature-icon"></i> Biometria
-                            </a></li>
-                            <li><a class="dropdown-item dropdown-item-custom" href="cruzamento-dados.php">
-                                <i class="fas fa-project-diagram feature-icon"></i> Cruzamento de Dados
-                            </a></li>
-                        </ul>
-                    </li>
+                    <<li class="nav-item dropdown">
+                    <a class="nav-link nav-link-custom dropdown-toggle <?php echo (in_array($current_page, ['reconhecimento-facial.php', 'biometria.php'])) ? 'active' : ''; ?>" 
+                    href="#" 
+                    id="inteligenciaDropdown" 
+                    role="button" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false"> <!-- Adicione aria-expanded -->
+                        <i class="fas fa-brain feature-icon"></i> Inteligência Artificial
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="inteligenciaDropdown">
+                        <li><a class="dropdown-item dropdown-item-custom <?php echo ($current_page == 'reconhecimento-facial.php') ? 'active' : ''; ?>" 
+                            href="reconhecimento-facial.php">
+                            <i class="fas fa-eye feature-icon"></i> Reconhecimento Facial
+                        </a></li>
+                        <li><a class="dropdown-item dropdown-item-custom <?php echo ($current_page == 'biometria.php') ? 'active' : ''; ?>" 
+                            href="biometria.php">
+                            <i class="fas fa-fingerprint feature-icon"></i> Biometria
+                        </a></li>
+                    </ul>
+                </li>
                 </ul>
-
                 <!-- Barra de Pesquisa -->
                 <div class="search-box me-3">
                     <i class="fas fa-search search-icon"></i>
@@ -162,19 +188,24 @@ $usuario = [
                 <!-- Menu do Usuário -->
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" 
+                        href="#" 
+                        id="userDropdown" 
+                        role="button" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false">
                             <img src="<?php echo $usuario['avatar']; ?>" class="user-avatar me-2">
                             <span class="text-white"><?php echo $usuario['nome']; ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item dropdown-item-custom" href="perfil.php">
+                            <li><a class="dropdown-item dropdown-item-custom <?php echo ($current_page == 'perfil.php') ? 'active' : ''; ?>" href="perfil.php">
                                 <i class="fas fa-user-circle me-2"></i> Meu Perfil
                             </a></li>
-                            <li><a class="dropdown-item dropdown-item-custom" href="configuracoes.php">
+                            <li><a class="dropdown-item dropdown-item-custom <?php echo ($current_page == 'configuracoes.php') ? 'active' : ''; ?>" href="configuracoes.php">
                                 <i class="fas fa-cog me-2"></i> Configurações
                             </a></li>
                             <li><hr class="dropdown-divider bg-secondary"></li>
-                            <li><a class="dropdown-item dropdown-item-custom" href="suporte.php">
+                            <li><a class="dropdown-item dropdown-item-custom <?php echo ($current_page == 'suporte.php') ? 'active' : ''; ?>" href="suporte.php">
                                 <i class="fas fa-headset me-2"></i> Suporte
                                 <span class="badge bg-danger badge-notification">3</span>
                             </a></li>
@@ -183,11 +214,10 @@ $usuario = [
                                 <i class="fas fa-sign-out-alt me-2"></i> Sair
                             </a>
                             </li>
-
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link position-relative" href="notificacoes.php">
+                        <a class="nav-link position-relative <?php echo ($current_page == 'notificacoes.php') ? 'active' : ''; ?>" href="notificacoes.php">
                             <i class="fas fa-bell text-white"></i>
                             <span class="badge bg-danger badge-notification">5</span>
                         </a>

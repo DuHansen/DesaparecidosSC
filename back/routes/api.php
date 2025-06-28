@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Controllers\Api\DesaparecidosController;
+use App\Http\Controllers\Api\GeolocationController;
 
 // Rotas de login com sessão (usam o middleware web)
 Route::middleware(['web'])->group(function () {
@@ -58,4 +59,7 @@ Route::post('/desaparecidos/{id}', [DesaparecidosController::class, 'update']); 
 
 // Deletar um desaparecido
 Route::delete('/desaparecidos/{id}', [DesaparecidosController::class, 'destroy']);
+
+Route::get('geolocation/ip', [GeolocationController::class, 'getCidadeByIp']);
+Route::get('geolocation/coordinates', [GeolocationController::class, 'getCidadeByCoordinates']);
 

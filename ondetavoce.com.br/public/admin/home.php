@@ -420,7 +420,7 @@ async function carregarDenuncias() {
     if (!result.success || !result.data.length) {
       container.innerHTML = `
         <div class="col-12">
-          <div class="alert alert-info">Nenhum desaparecido cadastrado ainda.</div>
+          <div class="alert alert-info">Nenhuma denúncia pendente encontrada.</div>
         </div>`;
       return;
     }
@@ -429,25 +429,28 @@ async function carregarDenuncias() {
 
     result.data.forEach(p => {
       const card = document.createElement('div');
-      card.className = 'col';
+      card.className = 'col-md-4 mb-4';
 
       const imagem = p.foto?.startsWith('data:image') ? p.foto : `../uploads/${p.foto}`;
-      const statusClasse = p.status === 'encontrado' ? 'success' : 'danger';
-      const nome = p.nome_desaparecido ?? 'Desconhecido';
+      const statusClasse = p.status === 'RESOLVIDA' ? 'success' : 
+                          p.status === 'REJEITADA' ? 'danger' : 
+                          p.status === 'EM_ANALISE' ? 'warning' : 'info';
+      const nome = p.nome_completo ?? 'Desconhecido';
 
       card.innerHTML = `
         <div class="card h-100 position-relative">
-          <span class="badge bg-${statusClasse} status-badge">
-            ${p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+          <span class="badge bg-${statusClasse} position-absolute top-0 end-0 m-2">
+            ${p.status.replace('_', ' ')}
           </span>
+          ${p.foto ? `<img src="${imagem}" class="card-img-top" alt="${nome}" style="height: 200px; object-fit: cover;">` : ''}
           <div class="card-body">
             <h5 class="card-title">${nome}</h5>
             <p class="card-text">
               <strong>Apelido:</strong> ${p.apelido || '-'}<br>
-              <strong>Idade:</strong> ${calcularIdade(p.data_nascimento)} anos<br>
+              <strong>Idade:</strong> ${p.idade || calcularIdade(p.data_nascimento)} anos<br>
               <strong>Desaparecido em:</strong> ${formatarData(p.data_desaparecimento)}<br>
               <strong>Cidade:</strong> ${p.cidade}<br>
-              <strong>Último local visto:</strong> ${p.ultimo_local}<br>
+              <strong>Último local visto:</strong> ${p.ultimo_local || '-'}<br>
               <strong>Altura:</strong> ${p.altura ? p.altura + ' cm' : '-'}<br>
               <strong>Peso:</strong> ${p.peso ? p.peso + ' kg' : '-'}<br>
               <strong>Cor da pele:</strong> ${p.cor_pele || '-'}
@@ -458,15 +461,62 @@ async function carregarDenuncias() {
               <strong>Contato:</strong> ${p.denunciante_email}
             </p>
           </div>
-          <div class="card-footer bg-transparent">
-            <a href="detalhes.php?id=${p.id}" class="btn btn-outline-primary btn-sm">
-              <i class="bi bi-eye"></i> Aprovar
-            </a>
+          <div class="card-footer bg-transparent d-flex justify-content-between">
+            <button class="btn btn-success btn-sm" onclick="abrirModalAprovar(${p.id})">
+              <i class="fas fa-check"></i> Aprovar
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="abrirModalReprovar(${p.id})">
+              <i class="fas fa-times"></i> Reprovar
+            </button>
           </div>
         </div>
       `;
       container.appendChild(card);
     });
+
+    // Adiciona os modais ao final do body
+    document.body.insertAdjacentHTML('beforeend', `
+      <!-- Modal Aprovar -->
+      <div class="modal fade" id="modalAprovar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title">Confirmar Aprovação</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Tem certeza que deseja aprovar esta denúncia? O caso será movido para a lista de desaparecidos.</p>
+              <textarea id="observacaoAprovar" class="form-control mt-3" placeholder="Observações (opcional)"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-success" onclick="aprovarDenuncia()">Confirmar Aprovação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Reprovar -->
+      <div class="modal fade" id="modalReprovar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title">Confirmar Reprovação</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Tem certeza que deseja reprovar esta denúncia? Informe o motivo abaixo:</p>
+              <textarea id="motivoReprovar" class="form-control mt-3" placeholder="Motivo da reprovação" required></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-danger" onclick="reprovarDenuncia()">Confirmar Reprovação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
   } catch (error) {
     container.innerHTML = `
       <div class="col-12">
@@ -476,6 +526,87 @@ async function carregarDenuncias() {
   }
 }
 
+// Variáveis globais para armazenar o ID da denúncia sendo manipulada
+let denunciaIdAtual = null;
+
+function abrirModalAprovar(id) {
+  denunciaIdAtual = id;
+  const modal = new bootstrap.Modal(document.getElementById('modalAprovar'));
+  modal.show();
+}
+
+function abrirModalReprovar(id) {
+  denunciaIdAtual = id;
+  const modal = new bootstrap.Modal(document.getElementById('modalReprovar'));
+  modal.show();
+}
+
+async function aprovarDenuncia() {
+  const observacao = document.getElementById('observacaoAprovar').value;
+  
+  try {
+    const response = await fetch('back/consultas/adicionarDenuncia.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: denunciaIdAtual,
+        observacao: observacao
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Denúncia aprovada com sucesso!');
+      carregarDenuncias();
+      bootstrap.Modal.getInstance(document.getElementById('modalAprovar')).hide();
+    } else {
+      alert('Erro ao aprovar denúncia: ' + (result.message || 'Erro desconhecido'));
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Erro ao aprovar denúncia');
+  }
+}
+
+async function reprovarDenuncia() {
+  const motivo = document.getElementById('motivoReprovar').value;
+  
+  if (!motivo) {
+    alert('Por favor, informe o motivo da reprovação');
+    return;
+  }
+
+  try {
+    const response = await fetch('back/consultas/excluirDenuncia.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: denunciaIdAtual,
+        motivo: motivo
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Denúncia reprovada com sucesso!');
+      carregarDenuncias();
+      bootstrap.Modal.getInstance(document.getElementById('modalReprovar')).hide();
+    } else {
+      alert('Erro ao reprovar denúncia: ' + (result.message || 'Erro desconhecido'));
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Erro ao reprovar denúncia');
+  }
+}
+
+// Funções auxiliares permanecem as mesmas
 function formatarData(dataStr) {
   const data = new Date(dataStr);
   return isNaN(data) ? '-' : data.toLocaleDateString('pt-BR');
